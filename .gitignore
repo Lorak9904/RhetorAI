@@ -126,6 +126,7 @@ celerybeat.pid
 
 # SageMath parsed files
 *.sage.py
+gsp_access_key.json
 
 # Environments
 .env
