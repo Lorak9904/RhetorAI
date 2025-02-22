@@ -76,13 +76,16 @@ async def chat(audio_text: str):
         response = mistral.chat(model="mistral-tiny", messages=[{"role": "user", "content": enhanced_prompt}])
         content = response.choices[0].message.content.strip()
 
+        # Replace single quotes with double quotes and ensure the response is valid JSON
         content = content.replace("'", '"')
 
+        # Attempt to parse the content into a valid JSON object
         try:
             parsed_response = json.loads(content)
         except json.JSONDecodeError as e:
             raise HTTPException(status_code=500, detail=f"Error decoding JSON: {str(e)}")
 
+        # Ensure the parsed response contains the required fields
         if all(key in parsed_response for key in ['analysis', 'score', 'tips']):
             return ChatResponse(**parsed_response)
         else:
@@ -90,6 +93,7 @@ async def chat(audio_text: str):
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing chat request: {str(e)}")
+
 
 
 if __name__ == "__main__":
