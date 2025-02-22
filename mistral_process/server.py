@@ -5,6 +5,7 @@ import os
 from dotenv import load_dotenv
 from typing import List
 
+
 load_dotenv()
 
 app = FastAPI()
