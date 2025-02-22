@@ -2,7 +2,7 @@ import os
 from google.cloud import speech
 
 # Set the environment variable for the Google credentials
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "cloud_key.json"  # Ensure the file name is correct
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "import_audio/cloud_key.json"
 
 def transcribe_audio(file_path):
     client = speech.SpeechClient()
@@ -25,5 +25,5 @@ def transcribe_audio(file_path):
         print("{}".format(result.alternatives[0].transcript))
 
 # Make sure the audio file is in the same directory
-audio_file_path = "miss_south_carolina.flac"
+audio_file_path = "import_audio/miss_south_carolina.flac"
 transcribe_audio(audio_file_path)
