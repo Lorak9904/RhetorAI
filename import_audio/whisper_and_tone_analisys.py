@@ -10,11 +10,12 @@ from decouple import config
 client = OpenAI(api_key=config("OPENAI_API_KEY"))
 
 # Transcribe Audio
-audio_file = open("import_audio/miss_south_carolina.mp3", "rb")
+audio_file = open("import_audio/kid.mp3", "rb")
 transcription = client.audio.transcriptions.create(
     model="whisper-1",
     file=audio_file,
-    response_format="verbose_json"
+    response_format="verbose_json",
+    timestamp_granularities=["word"]
 )
 
 # 🔹 Step 1: Detect Disfluencies
@@ -27,10 +28,11 @@ def analyze_speech_disfluencies(transcription):
     filler_count = 0
     words = []
     
-    if "words" in transcription.to_dict():
-        words = [word["word"].lower() for word in transcription["words"]]
+    if "words" in transcription.to_dict().keys():
+        words = [word["word"].lower() for word in transcription.to_dict().get("words")]
     else:
         words = transcription["text"].lower().split()  # Fallback
+        pass
 
     for i, word in enumerate(words):
         if word in filler_words:
@@ -38,7 +40,7 @@ def analyze_speech_disfluencies(transcription):
         if i > 0 and words[i - 1] == word:
             repeated_words.append(word)
 
-    speech_rate = len(words) / transcription["duration"] if transcription["duration"] > 0 else 0  
+    speech_rate = len(words) / transcription.to_dict().get('duration') if transcription.to_dict().get("duration") > 0 else 0  
 
     return {
         "stuttering": repeated_words,
@@ -71,7 +73,24 @@ def analyze_tone(audio_path):
 
 # Run Analysis
 disfluencies = analyze_speech_disfluencies(transcription)
-tone = analyze_tone("import_audio/miss_south_carolina.mp3")
+tone = analyze_tone("import_audio/kid.mp3")
 
 # Print Results
-print(json.dumps({"disfluencies": disfluencies, "tone_analysis": tone}, indent=4))
+# Convert numpy float32 to Python float
+def convert_numpy_types(obj):
+    if isinstance(obj, np.float32) or isinstance(obj, np.float64):
+        return float(obj)
+    elif isinstance(obj, dict):
+        return {k: convert_numpy_types(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_numpy_types(i) for i in obj]
+    return obj
+
+print(json.dumps(convert_numpy_types({"disfluencies": disfluencies, "tone_analysis": tone}), indent=4))
+print(transcription.to_dict().get("text"))
+
+
+x = """
+One second, what did you think about the ride? It was great, and apparently I've never been 
+on live television before, but apparently sometimes I don't watch the news, because I'm a kid and apparently every time, apparently Grandpa just gives me a remote after we watch the Powerball. It's the Powerball. Tell me about the ride, what did you think about the ride? Well, it was great, because apparently you're spinning around and apparently every time you get 
+dizzy, that's all you do is get dizzy. Is it fun? Yeah, and I've never ever been on live television, I've never ever been on live television. Are you excited? Yeah, and apparently I already went down the super slide. When I went down the slide I was scared half to death. I just freak out. Okay, okay. Wait, I need his name. Hold on, yep, hold on, I'm just going to ask him, what's his name? Noah. Noah, what's your last name? Dick Ritter. How do you spell his last name? Ritter, R-I-T-T-E-R. Okay, and where are you guys from? Wilkes-Barre. Wilkes-Barre, alright buddy. Good stuff. Have fun. We're from three different towns. Oh, right. That is my dad's town, Tom Jersey. Tom's River, New Jersey."""
