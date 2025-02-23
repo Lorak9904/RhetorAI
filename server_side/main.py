@@ -80,6 +80,9 @@ async def receive_audio(file: UploadFile = File(...)):
     }
 
 # Endpoint to analyze the transcribed text using Mistral AI
+import re
+
+# Endpoint to analyze the transcribed text using Mistral AI
 @app.post("/chat", response_model=ChatResponse)
 async def chat(audio_text: str):
     """Analyzes transcribed text using Mistral AI."""
@@ -100,8 +103,12 @@ async def chat(audio_text: str):
         response = mistral.chat(model="mistral-tiny", messages=[{"role": "user", "content": enhanced_prompt}])
         content = response.choices[0].message.content.strip()
 
-        # Replace single quotes with double quotes and ensure the response is valid JSON
+        # Replace single quotes with double quotes to ensure valid JSON
         content = content.replace("'", '"')
+
+        # Clean up unwanted characters and extra commas if present
+        content = re.sub(r',\s*}', '}', content)  # Remove trailing commas before closing brace
+        content = re.sub(r',\s*]', ']', content)  # Remove trailing commas before closing bracket
 
         # Attempt to parse the content into a valid JSON object
         try:
