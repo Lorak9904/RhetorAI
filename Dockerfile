@@ -10,4 +10,6 @@ RUN python3 -m venv venv
 
 RUN . venv/bin/activate && pip install --upgrade pip && pip install -r requirements.txt
 
-CMD ["/server_side/venv/bin/python", "server.py"]
+EXPOSE 8000
+
+CMD ["/server_side/venv/bin/uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
