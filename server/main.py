@@ -95,28 +95,39 @@ async def chat(audio_text: str):
     )
 
     try:
+        # Get the Mistral response
         response = mistral.chat(model="mistral-tiny", messages=[{"role": "user", "content": enhanced_prompt}])
         raw_content = response.choices[0].message.content.strip()
 
         logging.info(f"Raw Mistral Response: {raw_content}")
 
-        json_match = re.search(r"```(?:json)?\n([\s\S]+?)\n```", raw_content)
+        # Check if response is empty or malformed
+        if not raw_content:
+            logging.error("Mistral response is empty.")
+            raise HTTPException(status_code=500, detail="Mistral response is empty.")
 
+        # Extract JSON block using regex
+        json_match = re.search(r"```(?:json)?\n([\s\S]+?)\n```", raw_content)
         if json_match:
             json_content = json_match.group(1).strip()
         else:
             logging.error("Failed to extract JSON from response.")
             raise HTTPException(status_code=500, detail="Mistral response does not contain valid JSON.")
 
+        logging.info(f"Extracted JSON: {json_content}")
+
+        # Clean up potential trailing commas
         json_content = re.sub(r',\s*}', '}', json_content)
         json_content = re.sub(r',\s*]', ']', json_content)
 
+        # Parse the cleaned-up JSON
         try:
             parsed_response = json.loads(json_content)
         except json.JSONDecodeError as e:
             logging.error(f"JSON Decode Error: {str(e)}")
             raise HTTPException(status_code=500, detail=f"Error decoding JSON: {str(e)}")
 
+        # Ensure all required fields are present
         if all(key in parsed_response for key in ['analysis', 'score', 'tips']):
             return ChatResponse(**parsed_response)
         else:
@@ -126,6 +137,7 @@ async def chat(audio_text: str):
     except Exception as e:
         logging.error(f"Error processing chat request: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error processing chat request: {str(e)}")
+
 
 if __name__ == "__main__":
     import uvicorn
