@@ -89,9 +89,11 @@ async def chat(audio_text: str):
     """Analyzes transcribed text using Mistral AI."""
     
     enhanced_prompt = (
-        f"Please analyze the following text, provide a score between 1 and 100 based on its quality, "
+        f"Analyze the following text and return a JSON response formatted like this:\n
+        f", provide a score between 1 and 100 based on its quality, "
         f"and give some improvement tips. Return the response as a JSON object with the fields "
         f"'analysis', 'score', and 'tips'. Example format:\n"
+        f"Ensure the response is valid JSON with double quotes and no extra commas.\n\n"
         f'{{\n'
         f'  "analysis": "...",\n'
         f'  "score": 85,\n'
