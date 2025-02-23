@@ -76,20 +76,22 @@ async def chat(audio_text: str):
     """Analyzes transcribed text using Mistral AI."""
     
     enhanced_prompt = (
-    f"Analyze the following text and return a JSON response formatted like this:\n"
-    f", provide a score between 1 and 100 based on its quality, "
-    f"and give some improvement tips. Return the response as a JSON object with the fields "
-    f"'analysis', 'score', and 'tips'.\n"
-    f"Ensure the response is valid as the provided below JSON with double quotes and no extra commas.\n\n"
-    f"Keep in mind the end of line and just make it the cleanest json as possible. It is processed a web application later\n\n"
-    f"Example format:\n\n"
-    f'{{\n'
-    f'  "analysis": "...",\n'
-    f'  "score": 85,\n'
-    f'  "tips": ["...", "..."]\n'
-    f'}}\n\n'
-    f"Text: {audio_text}\n\n"
-)
+        "Analyze the following text and return a JSON response with:\n"
+        "- 'analysis': A summary of the quality of the text.\n"
+        "- 'score': A number between 1 and 100 evaluating the text quality.\n"
+        "- 'tips': A list of improvement suggestions.\n\n"
+        "Ensure the JSON is properly formatted, using double quotes for keys and values, "
+        "with no extra commas or unnecessary text.\n"
+        "Wrap the response in a proper JSON block inside triple backticks like this:\n\n"
+        "```\n"
+        "{\n"
+        '  "analysis": "...",\n'
+        '  "score": 85,\n'
+        '  "tips": ["...", "..."]\n'
+        "}\n"
+        "PRINT NOTHING ELSE\n"
+        "```"
+    )
 
     try:
         response = mistral.chat(model="mistral-tiny", messages=[{"role": "user", "content": enhanced_prompt}])
