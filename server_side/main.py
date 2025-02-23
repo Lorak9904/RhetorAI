@@ -7,29 +7,52 @@ import json
 from dotenv import load_dotenv
 from typing import List
 from whisperrr import transcribe_audio
+from fastapi.middleware.cors import CORSMiddleware
 
+# Load environment variables
 load_dotenv()
 
+# Create FastAPI app instance
 app = FastAPI()
 
+# CORS configuration - allows requests from specific origins
+origins = [
+    "https://3ce23cb5-db40-430d-a41b-2150c33e0aa5.lovableproject.com",  # Replace with your actual frontend domain if deployed
+]
+
+# Add CORSMiddleware to the FastAPI app
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,  # Specify allowed origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all methods like GET, POST, etc.
+    allow_headers=["*"],  # Allow all headers
+)
+
+# Load Mistral API key from environment
 MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
 if not MISTRAL_API_KEY:
     raise ValueError("Missing MISTRAL_API_KEY in .env")
 
+# Initialize Mistral client
 mistral = MistralClient(api_key=MISTRAL_API_KEY)
 
+# Define upload folder
 UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
+# Define the response model for chat responses
 class ChatResponse(BaseModel):
     analysis: str
     score: float
     tips: List[str]
 
+# Basic route for checking server health
 @app.get("/")
 def home():
     return {"message": "Mistral API is running with Python"}
 
+# Endpoint to handle audio file upload and transcription
 @app.post("/audio")
 async def receive_audio(file: UploadFile = File(...)):
     """Receives a WebM file, transcribes it, and sends the transcription to /chat."""
@@ -56,6 +79,7 @@ async def receive_audio(file: UploadFile = File(...)):
         "tips": chat_response.tips
     }
 
+# Endpoint to analyze the transcribed text using Mistral AI
 @app.post("/chat", response_model=ChatResponse)
 async def chat(audio_text: str):
     """Analyzes transcribed text using Mistral AI."""
@@ -94,8 +118,7 @@ async def chat(audio_text: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing chat request: {str(e)}")
 
-
-
+# Run the app with Uvicorn when the script is executed directly
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
