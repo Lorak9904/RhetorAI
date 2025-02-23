@@ -73,13 +73,10 @@ logging.basicConfig(level=logging.INFO)
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat(audio_text: str):
-    """Analyzes transcribed text using Mistral AI and ensures a valid JSON response."""
-
-    # Ensure audio_text is a string (if it's an object, extract the text content)
     if isinstance(audio_text, str):
         text_content = audio_text
     else:
-        text_content = str(audio_text)  # or extract the relevant text attribute if it's an object
+        text_content = str(audio_text)
 
     enhanced_prompt = (
         "Analyze the following text and return a JSON response with:\n"
@@ -97,22 +94,20 @@ async def chat(audio_text: str):
         "}\n"
         "```\n\n"
         "**DO NOT** add explanations, comments, or formatting outside this JSON block."
-        "\n\nText:\n" + text_content  # Now safely concatenating the string
+        "\n\nText:\n" + text_content
     )
 
     try:
-        # Get the Mistral response
         response = mistral.chat(model="mistral-tiny", messages=[{"role": "user", "content": enhanced_prompt}])
         raw_content = response.choices[0].message.content.strip()
 
         logging.info(f"Raw Mistral Response: {raw_content}")
 
-        # Check if response is empty or malformed
         if not raw_content:
             logging.error("Mistral response is empty.")
             raise HTTPException(status_code=500, detail="Mistral response is empty.")
 
-        # Extract JSON block using regex
+        # extract JSON regex
         json_match = re.search(r"```(?:json)?\n([\s\S]+?)\n```", raw_content)
         if json_match:
             json_content = json_match.group(1).strip()
@@ -120,20 +115,19 @@ async def chat(audio_text: str):
             logging.error("Failed to extract JSON from response.")
             raise HTTPException(status_code=500, detail="Mistral response does not contain valid JSON.")
 
+        # debug
         logging.info(f"Extracted JSON: {json_content}")
 
-        # Clean up potential trailing commas
+        # regex cleanup
         json_content = re.sub(r',\s*}', '}', json_content)
         json_content = re.sub(r',\s*]', ']', json_content)
 
-        # Parse the cleaned-up JSON
         try:
             parsed_response = json.loads(json_content)
         except json.JSONDecodeError as e:
             logging.error(f"JSON Decode Error: {str(e)}")
             raise HTTPException(status_code=500, detail=f"Error decoding JSON: {str(e)}")
 
-        # Ensure all required fields are present
         if all(key in parsed_response for key in ['analysis', 'score', 'tips']):
             return ChatResponse(**parsed_response)
         else:
