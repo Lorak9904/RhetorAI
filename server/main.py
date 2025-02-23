@@ -91,6 +91,7 @@ async def chat(audio_text: str):
         "}\n"
         "```\n\n"
         "**DO NOT** add explanations, comments, or formatting outside this JSON block."
+        "\n\nText:\n" + audio_text
     )
 
     try:
