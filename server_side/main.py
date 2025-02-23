@@ -15,15 +15,10 @@ load_dotenv()
 # Create FastAPI app instance
 app = FastAPI()
 
-# CORS configuration - allows requests from specific origins
-origins = [
-    "https://3ce23cb5-db40-430d-a41b-2150c33e0aa5.lovableproject.com",  # Replace with your actual frontend domain if deployed
-]
-
 # Add CORSMiddleware to the FastAPI app
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,  # Specify allowed origins
+    allow_origins=["*"],  # Specify allowed origins
     allow_credentials=True,
     allow_methods=["*"],  # Allow all methods like GET, POST, etc.
     allow_headers=["*"],  # Allow all headers
@@ -83,6 +78,12 @@ async def receive_audio(file: UploadFile = File(...)):
 import re
 
 # Endpoint to analyze the transcribed text using Mistral AI
+import logging
+import re
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+
 @app.post("/chat", response_model=ChatResponse)
 async def chat(audio_text: str):
     """Analyzes transcribed text using Mistral AI."""
@@ -103,6 +104,9 @@ async def chat(audio_text: str):
         response = mistral.chat(model="mistral-tiny", messages=[{"role": "user", "content": enhanced_prompt}])
         content = response.choices[0].message.content.strip()
 
+        # Log the raw response from Mistral
+        logging.info(f"Raw Mistral Response: {content}")
+
         # Replace single quotes with double quotes to ensure valid JSON
         content = content.replace("'", '"')
 
@@ -114,16 +118,20 @@ async def chat(audio_text: str):
         try:
             parsed_response = json.loads(content)
         except json.JSONDecodeError as e:
+            logging.error(f"JSON Decode Error: {str(e)}")
             raise HTTPException(status_code=500, detail=f"Error decoding JSON: {str(e)}")
 
         # Ensure the parsed response contains the required fields
         if all(key in parsed_response for key in ['analysis', 'score', 'tips']):
             return ChatResponse(**parsed_response)
         else:
+            logging.error("Response is missing required fields.")
             raise HTTPException(status_code=500, detail="Response is missing required fields.")
     
     except Exception as e:
+        logging.error(f"Error processing chat request: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error processing chat request: {str(e)}")
+
 
 # Run the app with Uvicorn when the script is executed directly
 if __name__ == "__main__":
