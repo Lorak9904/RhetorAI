@@ -1,11 +1,12 @@
 import requests
 
-url = "http://127.0.0.1:8000/audio"  # FastAPI audio upload endpoint
+# testing utility
 
-# Open the WebM file in binary mode
+url = "http://127.0.0.1:8000/audio"
+
 with open("dupa.webm", "rb") as file:
-    files = {"file": ("dupa.webm", file, "audio/webm")}  # Multipart file upload
+    files = {"file": ("dupa.webm", file, "audio/webm")}
 
-    response = requests.post(url, files=files)  # Send request
+    response = requests.post(url, files=files)
 
-print(response.text)  # Print the response
+print(response.text)
