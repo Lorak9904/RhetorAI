@@ -75,6 +75,12 @@ logging.basicConfig(level=logging.INFO)
 async def chat(audio_text: str):
     """Analyzes transcribed text using Mistral AI and ensures a valid JSON response."""
 
+    # Ensure audio_text is a string (if it's an object, extract the text content)
+    if isinstance(audio_text, str):
+        text_content = audio_text
+    else:
+        text_content = str(audio_text)  # or extract the relevant text attribute if it's an object
+
     enhanced_prompt = (
         "Analyze the following text and return a JSON response with:\n"
         "- 'analysis': A summary of the quality of the text.\n"
@@ -91,7 +97,7 @@ async def chat(audio_text: str):
         "}\n"
         "```\n\n"
         "**DO NOT** add explanations, comments, or formatting outside this JSON block."
-        "\n\nText:\n" + audio_text
+        "\n\nText:\n" + text_content  # Now safely concatenating the string
     )
 
     try:
