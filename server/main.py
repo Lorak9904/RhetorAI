@@ -73,8 +73,8 @@ logging.basicConfig(level=logging.INFO)
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat(audio_text: str):
-    """Analyzes transcribed text using Mistral AI."""
-    
+    """Analyzes transcribed text using Mistral AI and ensures a valid JSON response."""
+
     enhanced_prompt = (
         "Analyze the following text and return a JSON response with:\n"
         "- 'analysis': A summary of the quality of the text.\n"
@@ -89,24 +89,29 @@ async def chat(audio_text: str):
         '  "score": 85,\n'
         '  "tips": ["...", "..."]\n'
         "}\n"
-        "PRINT NOTHING ELSE\n"
-        "```"
+        "```\n\n"
+        "**DO NOT** add explanations, comments, or formatting outside this JSON block."
     )
 
     try:
         response = mistral.chat(model="mistral-tiny", messages=[{"role": "user", "content": enhanced_prompt}])
-        content = response.choices[0].message.content.strip()
+        raw_content = response.choices[0].message.content.strip()
 
-        logging.info(f"Raw Mistral Response: {content}")
+        logging.info(f"Raw Mistral Response: {raw_content}")
 
-        content = content.replace("'", '"')
+        json_match = re.search(r"```(?:json)?\n([\s\S]+?)\n```", raw_content)
 
-        # regex sanitizer
-        content = re.sub(r',\s*}', '}', content)
-        content = re.sub(r',\s*]', ']', content)
+        if json_match:
+            json_content = json_match.group(1).strip()
+        else:
+            logging.error("Failed to extract JSON from response.")
+            raise HTTPException(status_code=500, detail="Mistral response does not contain valid JSON.")
+
+        json_content = re.sub(r',\s*}', '}', json_content)
+        json_content = re.sub(r',\s*]', ']', json_content)
 
         try:
-            parsed_response = json.loads(content)
+            parsed_response = json.loads(json_content)
         except json.JSONDecodeError as e:
             logging.error(f"JSON Decode Error: {str(e)}")
             raise HTTPException(status_code=500, detail=f"Error decoding JSON: {str(e)}")
@@ -116,11 +121,10 @@ async def chat(audio_text: str):
         else:
             logging.error("Response is missing required fields.")
             raise HTTPException(status_code=500, detail="Response is missing required fields.")
-    
+
     except Exception as e:
         logging.error(f"Error processing chat request: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error processing chat request: {str(e)}")
-
 
 if __name__ == "__main__":
     import uvicorn
